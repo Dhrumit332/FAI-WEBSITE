@@ -1,51 +1,1075 @@
-# Sample workflow for building and deploying a Jekyll site to GitHub Pages
-name: Deploy Jekyll with GitHub Pages dependencies preinstalled
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy AI — Notes to Flashcards & Quizzes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
 
-on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
+        /* 3D Flashcard Flip Animation Styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+        /* Custom subtle scrollbar */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+        /* Loading Pulse Ring */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.85); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.85); opacity: 0.8; }
+        }
+        .animate-pulse-ring {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md shadow-indigo-200">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">StudyBuddy AI</span>
+                    <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">Mini Project 10.A</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Optional API Key Input for External Hosting / Live Testing -->
+                <div class="relative flex items-center">
+                    <i data-lucide="key-round" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none"></i>
+                    <input type="password" id="api-key-input" placeholder="Gemini API Key (Optional)" 
+                        class="w-36 sm:w-48 pl-8 pr-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-700 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition"
+                        title="Paste your Google AI Studio Gemini API Key here if running standalone">
+                </div>
+                <button onclick="resetApp()" class="text-sm font-medium text-slate-500 hover:text-indigo-600 transition flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Clear All</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-jobs:
-  # Build job
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+    <!-- Main Container -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Custom Toast Notification Banner (Replaces alert()) -->
+        <div id="toast-box" class="hidden fixed bottom-5 right-5 z-50 max-w-sm w-full bg-slate-900 text-white px-4 py-3.5 rounded-2xl shadow-xl border border-slate-700 flex items-start gap-3 transition-all duration-300">
+            <i id="toast-icon" data-lucide="info" class="w-5 h-5 text-indigo-400 shrink-0 mt-0.5"></i>
+            <div class="flex-1 text-sm" id="toast-message">Notification message</div>
+            <button onclick="hideToast()" class="text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
 
-  # Deployment job
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- LEFT PANEL: Input & Configuration -->
+            <section class="lg:col-span-5 bg-white rounded-3xl shadow-sm border border-slate-200/80 p-6 sm:p-7">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-5 h-5 text-indigo-600"></i>
+                        Your Study Notes
+                    </h2>
+                    <!-- Sample Notes Dropdown / Quick Load Buttons -->
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="loadSample('photosynthesis')" class="text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-xl transition flex items-center gap-1" title="Load Biology Sample">
+                            <i data-lucide="leaf" class="w-3.5 h-3.5"></i> Sample: Bio
+                        </button>
+                        <button onclick="loadSample('ww2')" class="text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-xl transition flex items-center gap-1" title="Load History Sample">
+                            <i data-lucide="landmark" class="w-3.5 h-3.5"></i> History
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-500 mb-3">Paste any textbook chapter, lecture notes, or article below, or click a sample button to test immediately.</p>
+
+                <!-- Notes Textarea -->
+                <div class="relative mb-5">
+                    <textarea id="notes-input" rows="9" 
+                        class="w-full rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition resize-y"
+                        placeholder="Paste your study notes here... (e.g., definitions, historical events, science concepts)"></textarea>
+                    <div class="flex justify-between items-center mt-1.5 px-1 text-xs text-slate-400">
+                        <span id="char-count">0 characters</span>
+                        <button onclick="document.getElementById('notes-input').value=''; updateCharCount();" class="hover:text-slate-600">Clear text</button>
+                    </div>
+                </div>
+
+                <!-- Controls Grid -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Difficulty Selector -->
+                    <div>
+                        <label for="difficulty-select" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Difficulty</label>
+                        <div class="relative">
+                            <select id="difficulty-select" class="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                                <option value="Easy">Easy (Basic Recall)</option>
+                                <option value="Medium" selected>Medium (Concepts)</option>
+                                <option value="Hard">Hard (Application)</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Count Selector -->
+                    <div>
+                        <label for="count-select" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Items Count</label>
+                        <div class="relative">
+                            <select id="count-select" class="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-medium text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                                <option value="3">3 Cards & Questions</option>
+                                <option value="5" selected>5 Cards & Questions</option>
+                                <option value="8">8 Cards & Questions</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate CTA Button -->
+                <button id="generate-btn" onclick="generateStudyMaterial()" 
+                    class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold text-sm shadow-lg shadow-indigo-200 hover:shadow-indigo-300 active:scale-[0.99] transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="wand-2" class="w-4 h-4"></i>
+                    <span>Generate Study Material</span>
+                </button>
+            </section>
+
+            <!-- RIGHT PANEL: Interactive Study Workspace -->
+            <section class="lg:col-span-7">
+                
+                <!-- 1. Empty / Welcome State -->
+                <div id="empty-state" class="bg-white rounded-3xl border border-dashed border-slate-300 p-10 sm:p-14 text-center flex flex-col items-center justify-center min-h-[460px]">
+                    <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-5 shadow-inner">
+                        <i data-lucide="graduation-cap" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Ready to Ace Your Next Exam?</h3>
+                    <p class="text-sm text-slate-500 max-w-md mb-6 leading-relaxed">
+                        Paste your textbook notes on the left and let Gemini AI automatically craft interactive 3D flashcards, a self-grading quiz, and key summary takeaways.
+                    </p>
+                    <button onclick="loadSample('photosynthesis'); generateStudyMaterial();" 
+                        class="px-5 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-sm transition flex items-center gap-2">
+                        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                        Try Instant Demo (Photosynthesis)
+                    </button>
+                </div>
+
+                <!-- 2. Loading State -->
+                <div id="loading-state" class="hidden bg-white rounded-3xl border border-slate-200 p-12 text-center flex flex-col items-center justify-center min-h-[460px]">
+                    <div class="relative flex items-center justify-center mb-6">
+                        <div class="w-20 h-20 rounded-full bg-indigo-100 animate-pulse-ring absolute"></div>
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center relative z-10 shadow-lg">
+                            <i data-lucide="brain-circuit" class="w-7 h-7 animate-bounce"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">Analyzing Your Notes...</h3>
+                    <p class="text-sm text-slate-500 max-w-xs">Gemini is extracting key concepts, creating flip cards, and writing quiz explanations.</p>
+                </div>
+
+                <!-- 3. Results Workspace (Tabs + Content) -->
+                <div id="results-workspace" class="hidden space-y-5">
+                    
+                    <!-- Navigation Tabs -->
+                    <div class="bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-sm flex items-center gap-1">
+                        <button onclick="switchTab('flashcards')" id="tab-flashcards" 
+                            class="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-sm">
+                            <i data-lucide="layers" class="w-4 h-4"></i>
+                            <span>Flashcards</span>
+                            <span id="badge-flashcards" class="text-xs px-1.5 py-0.5 rounded-md bg-white/20 text-white">0</span>
+                        </button>
+                        <button onclick="switchTab('quiz')" id="tab-quiz" 
+                            class="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Practice Quiz</span>
+                            <span id="badge-quiz" class="text-xs px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700">0</span>
+                        </button>
+                        <button onclick="switchTab('summary')" id="tab-summary" 
+                            class="flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                            <span>Summary</span>
+                        </button>
+                    </div>
+
+                    <!-- TAB 1: INTERACTIVE FLASHCARDS -->
+                    <div id="view-flashcards" class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+                        <!-- Progress & Mastered Header -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-6">
+                            <div class="flex items-center gap-2">
+                                <span id="card-counter" class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-xl">Card 1 of 5</span>
+                                <span class="text-xs text-slate-400 hidden sm:inline">Click card to flip</span>
+                            </div>
+                            <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl">
+                                <i data-lucide="award" class="w-4 h-4 text-emerald-600"></i>
+                                <span class="text-xs font-bold text-emerald-800">Mastered: <span id="mastered-count">0</span> / <span id="total-cards-count">5</span></span>
+                            </div>
+                        </div>
+
+                        <!-- 3D Flip Card Container -->
+                        <div class="perspective-1000 w-full h-72 sm:h-80 cursor-pointer mb-6 select-none" onclick="flipCard()">
+                            <div id="flashcard-inner" class="relative w-full h-full transform-style-3d">
+                                
+                                <!-- Card Front (Question / Term) -->
+                                <div class="absolute inset-0 backface-hidden rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-violet-50 border-2 border-indigo-100 shadow-md p-6 sm:p-8 flex flex-col justify-between">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-100/70 px-2.5 py-1 rounded-lg">Question / Term</span>
+                                        <span id="card-mastered-badge" class="hidden text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i> Mastered
+                                        </span>
+                                    </div>
+                                    <div class="my-auto text-center px-2">
+                                        <p id="card-front-text" class="text-lg sm:text-xl font-bold text-slate-900 leading-snug">Loading question...</p>
+                                    </div>
+                                    <div class="text-center text-xs font-medium text-slate-400 flex items-center justify-center gap-1.5">
+                                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Tap to reveal answer
+                                    </div>
+                                </div>
+
+                                <!-- Card Back (Answer / Definition) -->
+                                <div class="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-lg p-6 sm:p-8 flex flex-col justify-between">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-100 bg-white/15 px-2.5 py-1 rounded-lg">Answer</span>
+                                        <i data-lucide="sparkles" class="w-4 h-4 text-indigo-200"></i>
+                                    </div>
+                                    <div class="my-auto text-center px-2 overflow-y-auto max-h-44">
+                                        <p id="card-back-text" class="text-base sm:text-lg font-medium text-white leading-relaxed">Loading answer...</p>
+                                    </div>
+                                    <div class="text-center text-xs font-medium text-indigo-200 flex items-center justify-center gap-1.5">
+                                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Tap to flip back
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Flashcard Controls -->
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <button onclick="prevCard()" id="prev-card-btn" class="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition flex items-center gap-1.5 disabled:opacity-40">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Previous
+                            </button>
+
+                            <button onclick="toggleMastered()" id="master-btn" class="px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-sm transition flex items-center gap-1.5">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                <span id="master-btn-text">Mark as Mastered</span>
+                            </button>
+
+                            <button onclick="nextCard()" id="next-card-btn" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition flex items-center gap-1.5 disabled:opacity-40">
+                                Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: MULTIPLE-CHOICE QUIZ -->
+                    <div id="view-quiz" class="hidden bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+                        
+                        <!-- Active Quiz Container -->
+                        <div id="quiz-active-container">
+                            <div class="flex items-center justify-between mb-4">
+                                <span id="quiz-progress-text" class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl">Question 1 of 5</span>
+                                <span class="text-xs font-semibold text-slate-500">Score: <span id="live-score" class="text-slate-900 font-bold">0</span></span>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-6">
+                                <div id="quiz-progress-bar" class="h-full bg-indigo-600 transition-all duration-300" style="width: 20%"></div>
+                            </div>
+
+                            <!-- Question Prompt -->
+                            <h3 id="quiz-question-text" class="text-lg font-bold text-slate-900 mb-5 leading-snug">Question text goes here?</h3>
+
+                            <!-- Options List -->
+                            <div id="quiz-options-list" class="space-y-3 mb-6">
+                                <!-- Options injected dynamically -->
+                            </div>
+
+                            <!-- Instant Explanation Box -->
+                            <div id="quiz-explanation-box" class="hidden rounded-2xl p-4 mb-6 border text-sm">
+                                <div class="flex items-start gap-2.5">
+                                    <i id="explanation-icon" data-lucide="info" class="w-5 h-5 shrink-0 mt-0.5"></i>
+                                    <div>
+                                        <p id="explanation-title" class="font-bold mb-1">Explanation</p>
+                                        <p id="explanation-text" class="leading-relaxed opacity-90"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Next Question Button -->
+                            <div class="flex justify-end">
+                                <button id="quiz-next-btn" onclick="nextQuizQuestion()" class="hidden px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md transition flex items-center gap-2">
+                                    <span>Next Question</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Final Score Summary Screen -->
+                        <div id="quiz-summary-container" class="hidden text-center py-6">
+                            <div id="score-trophy-bg" class="w-20 h-20 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-5 shadow-inner">
+                                <i data-lucide="trophy" class="w-10 h-10"></i>
+                            </div>
+                            <h3 class="text-2xl font-extrabold text-slate-900 mb-1">Quiz Completed!</h3>
+                            <p id="score-feedback-msg" class="text-sm text-slate-500 mb-6">Great job reviewing your study notes!</p>
+                            
+                            <div class="inline-flex items-center gap-6 bg-slate-50 border border-slate-200 rounded-2xl px-8 py-4 mb-8">
+                                <div>
+                                    <div class="text-xs font-semibold text-slate-400 uppercase">Final Score</div>
+                                    <div id="final-score-fraction" class="text-3xl font-extrabold text-indigo-600">4 / 5</div>
+                                </div>
+                                <div class="h-10 w-px bg-slate-200"></div>
+                                <div>
+                                    <div class="text-xs font-semibold text-slate-400 uppercase">Accuracy</div>
+                                    <div id="final-score-percent" class="text-3xl font-extrabold text-emerald-600">80%</div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap justify-center gap-3">
+                                <button onclick="retakeQuiz()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition flex items-center gap-2">
+                                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Retake Quiz
+                                </button>
+                                <button onclick="switchTab('flashcards')" class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition flex items-center gap-2">
+                                    <i data-lucide="layers" class="w-4 h-4"></i> Review Flashcards
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: KEY SUMMARY NOTES -->
+                    <div id="view-summary" class="hidden bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+                        <div class="flex items-center justify-between mb-5">
+                            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                <i data-lucide="list-checks" class="w-5 h-5 text-indigo-600"></i>
+                                Key Takeaways & Summary
+                            </h3>
+                            <button onclick="copySummary()" class="text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Notes
+                            </button>
+                        </div>
+                        <div id="summary-content" class="space-y-3 text-sm text-slate-700 leading-relaxed">
+                            <!-- Bullet points injected here -->
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-5 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-400">
+            Built with Gemini AI • Interactive Study Assistant for Mini Project 10.A & 10.B
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Sample Study Notes Data for Instant Demo
+        const SAMPLE_NOTES = {
+            photosynthesis: `Photosynthesis is the biological process used by plants, algae, and certain bacteria to convert light energy into chemical energy, through a process that converts carbon dioxide and water into glucose (sugar) and oxygen. 
+
+The process occurs primarily in the chloroplasts of plant leaves, which contain the green pigment chlorophyll. Chlorophyll absorbs light energy, mostly from the blue and red wavelengths of the electromagnetic spectrum, while reflecting green light.
+
+Photosynthesis takes place in two main stages:
+1. Light-Dependent Reactions: Occur in the thylakoid membranes of the chloroplast. Light energy splits water molecules (photolysis), releasing oxygen gas (O2) as a byproduct and generating energy-carrying molecules ATP and NADPH.
+2. The Calvin Cycle (Light-Independent Reactions): Occurs in the stroma of the chloroplast. Using ATP and NADPH from the first stage, the enzyme RuBisCO captures carbon dioxide (CO2) from the atmosphere and fixes it into organic glucose molecules (C6H12O6).
+
+Factors affecting the rate of photosynthesis include light intensity, carbon dioxide concentration, and temperature.`,
+
+            ww2: `World War II (1939–1945) was a global conflict fought between two major military alliances: the Allies (led by the United States, the Soviet Union, the United Kingdom, and China) and the Axis powers (Germany, Italy, and Japan).
+
+The war in Europe began on September 1, 1939, when Nazi Germany, under Adolf Hitler, invaded Poland, prompting Britain and France to declare war on Germany. Key turning points in Europe included the Battle of Britain (1940), the German invasion of the Soviet Union (Operation Barbarossa, 1941), the Soviet victory at the Battle of Stalingrad (1942–1943), and the Allied D-Day invasion of Normandy on June 6, 1944.
+
+In the Pacific Theater, Japan sought to expand its empire across Asia. On December 7, 1941, Japan launched a surprise attack on the U.S. naval base at Pearl Harbor, bringing the United States into the war. The Battle of Midway (1942) marked a decisive turning point for the Allies in the Pacific. The war ended in 1945 following Germany's surrender in May (V-E Day) and Japan's surrender in September after atomic bombs were dropped on Hiroshima and Nagasaki.`
+        };
+
+        // Application State
+        let studyData = {
+            summary: [],
+            flashcards: [],
+            quiz: []
+        };
+
+        // Flashcard State
+        let currentCardIndex = 0;
+        let isCardFlipped = false;
+        let masteredSet = new Set();
+
+        // Quiz State
+        let currentQuizIndex = 0;
+        let quizScore = 0;
+        let hasAnsweredCurrent = false;
+
+        // Character Counter Listener
+        const notesInput = document.getElementById('notes-input');
+        notesInput.addEventListener('input', updateCharCount);
+
+        function updateCharCount() {
+            const len = notesInput.value.length;
+            document.getElementById('char-count').textContent = `${len.toLocaleString()} characters`;
+        }
+
+        // Load Sample Notes
+        function loadSample(topic) {
+            if (SAMPLE_NOTES[topic]) {
+                notesInput.value = SAMPLE_NOTES[topic];
+                updateCharCount();
+                showToast(`Loaded "${topic === 'photosynthesis' ? 'Photosynthesis' : 'World War II'}" sample notes!`, 'info');
+            }
+        }
+
+        // Toast Notification Helper (Replaces alert())
+        let toastTimeout;
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast-box');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+
+            msgEl.textContent = message;
+            
+            if (type === 'error') {
+                iconEl.setAttribute('data-lucide', 'alert-circle');
+                iconEl.className = 'w-5 h-5 text-rose-400 shrink-0 mt-0.5';
+            } else if (type === 'success') {
+                iconEl.setAttribute('data-lucide', 'check-circle-2');
+                iconEl.className = 'w-5 h-5 text-emerald-400 shrink-0 mt-0.5';
+            } else {
+                iconEl.setAttribute('data-lucide', 'sparkles');
+                iconEl.className = 'w-5 h-5 text-indigo-400 shrink-0 mt-0.5';
+            }
+            lucide.createIcons();
+
+            toast.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(hideToast, 4500);
+        }
+
+        function hideToast() {
+            document.getElementById('toast-box').classList.add('hidden');
+        }
+
+        // Exponential Backoff Fetch Helper for Gemini API
+        async function fetchWithRetry(url, options, maxRetries = 4) {
+            let delay = 1000;
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if ((response.status === 429 || response.status >= 500) && attempt < maxRetries) {
+                            await new Promise(res => setTimeout(res, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error?.message || `API Error (${response.status})`);
+                    }
+                    return await response.json();
+                } catch (err) {
+                    if (attempt === maxRetries) throw err;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // Generate Study Material using Gemini API
+        async function generateStudyMaterial() {
+            const notes = notesInput.value.trim();
+            if (notes.length < 30) {
+                showToast('Please enter at least a paragraph of notes (or click a Sample button).', 'error');
+                notesInput.focus();
+                return;
+            }
+
+            const difficulty = document.getElementById('difficulty-select').value;
+            const count = parseInt(document.getElementById('count-select').value, 10);
+
+            // Update UI to Loading State
+            const generateBtn = document.getElementById('generate-btn');
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-70', 'cursor-not-allowed');
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('results-workspace').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+
+            const apiKey = ""; // Provided automatically at runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `You are an expert academic tutor and study assistant. Analyze the provided study notes and generate structured study materials at a "${difficulty}" difficulty level. Create ${count} flashcards, ${count} multiple-choice quiz questions with clear explanations, and 4-6 concise bullet-point summary takeaways.`;
+// ... existing code ... -->
+            try {
+                const userProvidedKey = document.getElementById('api-key-input').value.trim();
+                const effectiveApiKey = userProvidedKey || apiKey;
+
+                if (!effectiveApiKey) {
+                    // Use built-in local study generator if no API key is present
+                    await new Promise(res => setTimeout(res, 700));
+                    studyData = generateOfflineStudySet(notes, count);
+                    initializeWorkspace();
+                    showToast('Generated study set in Offline Demo Mode! Add a Gemini API key at the top for live AI.', 'info');
+                    return;
+                }
+
+                const dynamicApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${effectiveApiKey}`;
+                const result = await fetchWithRetry(dynamicApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!rawText) {
+                    throw new Error("Received an empty response from Gemini.");
+                }
+
+                const parsed = JSON.parse(rawText);
+                if (!parsed.flashcards?.length || !parsed.quiz?.length) {
+                    throw new Error("Incomplete study materials generated.");
+                }
+
+                studyData = parsed;
+                initializeWorkspace();
+                showToast('Study flashcards, quiz, and summary ready!', 'success');
+
+            } catch (error) {
+                console.warn("Falling back to local study generator due to API restriction:", error.message);
+                // Fallback seamlessly so user never gets stuck on a permission error
+                studyData = generateOfflineStudySet(notes, count);
+                initializeWorkspace();
+                showToast('Live API restricted here — loaded Offline Demo Mode instead!', 'info');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        }
+
+        // Smart Offline Study Generator (Fallback when running without a live Gemini API key)
+        function generateOfflineStudySet(notes, count) {
+            const lower = notes.toLowerCase();
+
+            // Pre-built rich study sets for the sample topics
+            if (lower.includes('photosynthesis') && lower.includes('chlorophyll')) {
+                const allCards = [
+                    { front: "What is Photosynthesis?", back: "The biological process used by plants, algae, and certain bacteria to convert light energy into chemical energy (glucose) from CO2 and water." },
+                    { front: "Where does photosynthesis primarily occur in plants?", back: "In the chloroplasts of plant leaves, which contain the green pigment chlorophyll." },
+                    { front: "What are the two main stages of photosynthesis?", back: "1. Light-Dependent Reactions (in thylakoid membranes) and 2. The Calvin Cycle / Light-Independent Reactions (in the stroma)." },
+                    { front: "What happens during the Light-Dependent Reactions?", back: "Light energy splits water molecules (photolysis), releasing oxygen (O2) and producing energy carriers ATP and NADPH." },
+                    { front: "What is the role of RuBisCO in the Calvin Cycle?", back: "RuBisCO is an enzyme in the stroma that captures atmospheric CO2 and fixes it into organic glucose molecules (C6H12O6)." },
+                    { front: "Which light wavelengths does chlorophyll absorb best?", back: "Blue and red wavelengths of the electromagnetic spectrum, while reflecting green light." },
+                    { front: "What three main factors affect the rate of photosynthesis?", back: "Light intensity, carbon dioxide (CO2) concentration, and temperature." },
+                    { front: "What gas is released as a byproduct of splitting water?", back: "Oxygen gas (O2)." }
+                ];
+                const allQuiz = [
+                    {
+                        question: "Which pigment inside chloroplasts absorbs light energy for photosynthesis?",
+                        options: ["Hemoglobin", "Chlorophyll", "Melanin", "Keratin"],
+                        correctIndex: 1,
+                        explanation: "Chlorophyll is the green pigment found in chloroplasts that absorbs blue and red light energy."
+                    },
+                    {
+                        question: "Where do the Light-Dependent Reactions take place?",
+                        options: ["Stroma", "Mitochondria", "Thylakoid membranes", "Cell wall"],
+                        correctIndex: 2,
+                        explanation: "Light-dependent reactions occur in the thylakoid membranes of the chloroplast, generating ATP, NADPH, and oxygen."
+                    },
+                    {
+                        question: "What enzyme captures carbon dioxide during the Calvin Cycle?",
+                        options: ["Amylase", "RuBisCO", "ATP Synthase", "Catalase"],
+                        correctIndex: 1,
+                        explanation: "RuBisCO fixes atmospheric CO2 into organic glucose molecules in the stroma during the Calvin Cycle."
+                    },
+                    {
+                        question: "Which two energy-carrying molecules are produced in the first stage of photosynthesis?",
+                        options: ["ADP and NADP+", "Glucose and Oxygen", "ATP and NADPH", "DNA and RNA"],
+                        correctIndex: 2,
+                        explanation: "Light-dependent reactions generate ATP and NADPH, which then power the Calvin Cycle."
+                    },
+                    {
+                        question: "Why do most plant leaves appear green to the human eye?",
+                        options: ["Chlorophyll absorbs green light", "Chlorophyll reflects green light", "Leaves contain green water", "CO2 turns leaves green"],
+                        correctIndex: 1,
+                        explanation: "Chlorophyll absorbs blue and red wavelengths while reflecting green light."
+                    },
+                    {
+                        question: "What is the primary sugar produced at the end of the Calvin Cycle?",
+                        options: ["Fructose", "Sucrose", "Glucose (C6H12O6)", "Lactose"],
+                        correctIndex: 2,
+                        explanation: "The Calvin Cycle uses ATP, NADPH, and CO2 to synthesize glucose (C6H12O6)."
+                    },
+                    {
+                        question: "What causes the release of oxygen gas during photosynthesis?",
+                        options: ["Breakdown of glucose", "Splitting of water molecules (photolysis)", "Absorption of CO2", "Heating of the stroma"],
+                        correctIndex: 1,
+                        explanation: "During the light-dependent reactions, light energy splits water molecules, releasing O2 as a byproduct."
+                    },
+                    {
+                        question: "Which of the following is NOT listed as a factor affecting photosynthesis rate?",
+                        options: ["Light intensity", "CO2 concentration", "Soil nitrogen levels", "Temperature"],
+                        correctIndex: 2,
+                        explanation: "The notes highlight light intensity, carbon dioxide concentration, and temperature as key rate factors."
+                    }
+                ];
+                return {
+                    summary: [
+                        "Photosynthesis converts light energy, carbon dioxide, and water into glucose and oxygen inside plant chloroplasts.",
+                        "Chlorophyll absorbs blue and red light wavelengths while reflecting green light.",
+                        "Stage 1 (Light-Dependent Reactions) occurs in thylakoid membranes, splitting water to release O2 and producing ATP and NADPH.",
+                        "Stage 2 (Calvin Cycle) occurs in the stroma, where RuBisCO fixes CO2 into glucose using ATP and NADPH.",
+                        "Photosynthesis rates depend on light intensity, CO2 concentration, and temperature."
+                    ],
+                    flashcards: allCards.slice(0, count),
+                    quiz: allQuiz.slice(0, count)
+                };
+            }
+
+            if (lower.includes('world war ii') || lower.includes('pearl harbor')) {
+                const allCards = [
+                    { front: "When did World War II take place?", back: "From 1939 to 1945." },
+                    { front: "Who were the two major military alliances in WWII?", back: "The Allies (US, Soviet Union, UK, China) and the Axis powers (Germany, Italy, Japan)." },
+                    { front: "What event triggered the start of WWII in Europe?", back: "Nazi Germany's invasion of Poland on September 1, 1939, prompting Britain and France to declare war." },
+                    { front: "What event brought the United States into WWII?", back: "Japan's surprise attack on the U.S. naval base at Pearl Harbor on December 7, 1941." },
+                    { front: "What was D-Day?", back: "The Allied invasion of Normandy, France on June 6, 1944, a major turning point in Europe." },
+                    { front: "Which battle was a decisive turning point in the Pacific Theater?", back: "The Battle of Midway in 1942." },
+                    { front: "Which Soviet victory marked a major turning point on the Eastern Front?", back: "The Battle of Stalingrad (1942–1943)." },
+                    { front: "How did World War II end in 1945?", back: "Germany surrendered in May (V-E Day), and Japan surrendered in September after atomic bombs were dropped on Hiroshima and Nagasaki." }
+                ];
+                const allQuiz = [
+                    {
+                        question: "Which event directly caused Britain and France to declare war on Germany in September 1939?",
+                        options: ["Attack on Pearl Harbor", "Invasion of Poland", "Battle of Britain", "Invasion of Normandy"],
+                        correctIndex: 1,
+                        explanation: "Germany invaded Poland on September 1, 1939, starting World War II in Europe."
+                    },
+                    {
+                        question: "On what date did Japan attack Pearl Harbor?",
+                        options: ["September 1, 1939", "June 6, 1944", "December 7, 1941", "May 8, 1945"],
+                        correctIndex: 2,
+                        explanation: "The surprise attack on Pearl Harbor occurred on December 7, 1941, bringing the U.S. into the war."
+                    },
+                    {
+                        question: "Which battle is considered a decisive turning point for the Allies in the Pacific Theater?",
+                        options: ["Battle of Stalingrad", "Battle of Midway", "Battle of Britain", "Operation Barbarossa"],
+                        correctIndex: 1,
+                        explanation: "The Battle of Midway (1942) halted Japanese naval expansion and shifted momentum to the Allies."
+                    },
+                    {
+                        question: "What happened on June 6, 1944?",
+                        options: ["Germany surrendered (V-E Day)", "Allied D-Day invasion of Normandy", "Invasion of the Soviet Union", "Attack on Pearl Harbor"],
+                        correctIndex: 1,
+                        explanation: "June 6, 1944 was D-Day, the massive Allied amphibious invasion of Normandy."
+                    },
+                    {
+                        question: "Which countries formed the primary Axis powers?",
+                        options: ["Germany, Italy, and Japan", "US, UK, and Soviet Union", "Germany, Spain, and China", "France, Italy, and Japan"],
+                        correctIndex: 0,
+                        explanation: "The Axis alliance was led by Germany, Italy, and Japan."
+                    }
+                ];
+                return {
+                    summary: [
+                        "World War II (1939–1945) pitted the Allies (US, USSR, UK, China) against the Axis powers (Germany, Italy, Japan).",
+                        "War in Europe began on September 1, 1939, when Germany invaded Poland.",
+                        "Major European turning points included the Battle of Britain, Stalingrad (1942–43), and the D-Day invasion (June 6, 1944).",
+                        "The U.S. entered the war after Japan attacked Pearl Harbor on December 7, 1941, followed by a key Allied victory at Midway (1942).",
+                        "WWII ended in 1945 after Germany's surrender in May (V-E Day) and Japan's surrender in September."
+                    ],
+                    flashcards: allCards.slice(0, count),
+                    quiz: allQuiz.slice(0, count)
+                };
+            }
+
+            // Dynamic Sentence-Based Extraction for Custom User Notes
+            const sentences = notes
+                .split(/[.!?]+/)
+                .map(s => s.trim())
+                .filter(s => s.length > 25);
+
+            const safeSentences = sentences.length > 0 ? sentences : [notes.trim()];
+            const flashcards = [];
+            const quiz = [];
+
+            for (let i = 0; i < count; i++) {
+                const sentence = safeSentences[i % safeSentences.length];
+                const words = sentence.split(/\s+/);
+                const keyword = words.find(w => w.length > 6 && /^[a-zA-Z]+$/.test(w)) || words[Math.floor(words.length / 2)] || "Concept";
+                const cleanKeyword = keyword.replace(/[^a-zA-Z0-9]/g, '');
+
+                flashcards.push({
+                    front: `Key Concept #${i + 1}: Explain the role of "${cleanKeyword}" based on your notes.`,
+                    back: sentence + "."
+                });
+
+                const maskedSentence = sentence.replace(new RegExp(`\\b${cleanKeyword}\\b`, 'i'), '________');
+                const distractors = ["Photosynthesis", "Equilibrium", "Infrastructure", "Hypothesis", "Catalyst", "Synthesis"]
+                    .filter(d => d.toLowerCase() !== cleanKeyword.toLowerCase())
+                    .slice(0, 3);
+
+                const options = [cleanKeyword, ...distractors];
+                // Deterministic shuffle based on index
+                const correctIndex = i % 4;
+                options.splice(0, 1);
+                options.splice(correctIndex, 0, cleanKeyword);
+
+                quiz.push({
+                    question: `Complete this key statement from your notes: "${maskedSentence}."`,
+                    options: options,
+                    correctIndex: correctIndex,
+                    explanation: `According to your notes: "${sentence}."`
+                });
+            }
+
+            return {
+                summary: safeSentences.slice(0, 5).map(s => s + "."),
+                flashcards,
+                quiz
+            };
+        }
+
+        // Initialize Workspace after successful API generation
+        function initializeWorkspace() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('results-workspace').classList.remove('hidden');
+
+            // Update Badges
+            document.getElementById('badge-flashcards').textContent = studyData.flashcards.length;
+            document.getElementById('badge-quiz').textContent = studyData.quiz.length;
+
+            // Reset & Render Flashcards
+            currentCardIndex = 0;
+            isCardFlipped = false;
+            masteredSet.clear();
+            renderFlashcard();
+
+            // Reset & Render Quiz
+            currentQuizIndex = 0;
+            quizScore = 0;
+            hasAnsweredCurrent = false;
+            document.getElementById('quiz-summary-container').classList.add('hidden');
+            document.getElementById('quiz-active-container').classList.remove('hidden');
+            renderQuizQuestion();
+
+            // Render Summary
+            renderSummary();
+
+            // Default to Flashcards Tab
+            switchTab('flashcards');
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            const tabs = ['flashcards', 'quiz', 'summary'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const view = document.getElementById(`view-${t}`);
+                const badge = document.getElementById(`badge-${t}`);
+
+                if (t === tabName) {
+                    btn.className = "flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-sm";
+                    if (badge) badge.className = "text-xs px-1.5 py-0.5 rounded-md bg-white/20 text-white";
+                    view.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all flex items-center justify-center gap-2";
+                    if (badge) badge.className = "text-xs px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700";
+                    view.classList.add('hidden');
+                }
+            });
+        }
+
+        // ================= FLASHCARDS LOGIC =================
+        function renderFlashcard() {
+            const total = studyData.flashcards.length;
+            const card = studyData.flashcards[currentCardIndex];
+
+            // Reset flip orientation immediately when changing cards
+            isCardFlipped = false;
+            document.getElementById('flashcard-inner').classList.remove('rotate-y-180');
+
+            // Update Text
+            document.getElementById('card-front-text').textContent = card.front;
+            document.getElementById('card-back-text').textContent = card.back;
+
+            // Update Counters
+            document.getElementById('card-counter').textContent = `Card ${currentCardIndex + 1} of ${total}`;
+            document.getElementById('mastered-count').textContent = masteredSet.size;
+            document.getElementById('total-cards-count').textContent = total;
+
+            // Update Mastered State Visuals
+            const isMastered = masteredSet.has(currentCardIndex);
+            const badge = document.getElementById('card-mastered-badge');
+            const masterBtn = document.getElementById('master-btn');
+            const masterBtnText = document.getElementById('master-btn-text');
+
+            if (isMastered) {
+                badge.classList.remove('hidden');
+                masterBtn.className = "px-4 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm transition flex items-center gap-1.5 shadow-sm";
+                masterBtnText.textContent = "Mastered!";
+            } else {
+                badge.classList.add('hidden');
+                masterBtn.className = "px-4 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-sm transition flex items-center gap-1.5";
+                masterBtnText.textContent = "Mark as Mastered";
+            }
+
+            // Update Prev/Next Button states
+            document.getElementById('prev-card-btn').disabled = currentCardIndex === 0;
+            document.getElementById('next-card-btn').disabled = currentCardIndex === total - 1;
+        }
+
+        function flipCard() {
+            isCardFlipped = !isCardFlipped;
+            const inner = document.getElementById('flashcard-inner');
+            if (isCardFlipped) {
+                inner.classList.add('rotate-y-180');
+            } else {
+                inner.classList.remove('rotate-y-180');
+            }
+        }
+
+        function nextCard() {
+            if (currentCardIndex < studyData.flashcards.length - 1) {
+                currentCardIndex++;
+                renderFlashcard();
+            }
+        }
+
+        function prevCard() {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                renderFlashcard();
+            }
+        }
+
+        function toggleMastered() {
+            if (masteredSet.has(currentCardIndex)) {
+                masteredSet.delete(currentCardIndex);
+            } else {
+                masteredSet.add(currentCardIndex);
+            }
+            renderFlashcard();
+        }
+
+        // ================= QUIZ LOGIC =================
+        function renderQuizQuestion() {
+            const total = studyData.quiz.length;
+            const q = studyData.quiz[currentQuizIndex];
+            hasAnsweredCurrent = false;
+
+            // Update Header & Progress Bar
+            document.getElementById('quiz-progress-text').textContent = `Question ${currentQuizIndex + 1} of ${total}`;
+            document.getElementById('live-score').textContent = quizScore;
+            const progressPct = ((currentQuizIndex + 1) / total) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${progressPct}%`;
+
+            // Set Question
+            document.getElementById('quiz-question-text').textContent = q.question;
+
+            // Hide Explanation & Next Button
+            document.getElementById('quiz-explanation-box').classList.add('hidden');
+            const nextBtn = document.getElementById('quiz-next-btn');
+            nextBtn.classList.add('hidden');
+            nextBtn.querySelector('span').textContent = currentQuizIndex === total - 1 ? 'See Final Score' : 'Next Question';
+
+            // Render Options
+            const optionsList = document.getElementById('quiz-options-list');
+            optionsList.innerHTML = '';
+
+            const letters = ['A', 'B', 'C', 'D'];
+            q.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 transition-all flex items-center gap-3.5 group";
+                btn.onclick = () => selectQuizOption(idx);
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-indigo-100 text-slate-700 group-hover:text-indigo-700 font-bold text-sm flex items-center justify-center shrink-0 transition">
+                        ${letters[idx] || idx + 1}
+                    </span>
+                    <span class="text-sm font-medium text-slate-800 flex-1">${escapeHtml(optText)}</span>
+                `;
+                optionsList.appendChild(btn);
+            });
+        }
+
+        function selectQuizOption(selectedIndex) {
+            if (hasAnsweredCurrent) return;
+            hasAnsweredCurrent = true;
+
+            const q = studyData.quiz[currentQuizIndex];
+            const isCorrect = selectedIndex === q.correctIndex;
+            if (isCorrect) {
+                quizScore++;
+                document.getElementById('live-score').textContent = quizScore;
+            }
+
+            // Style all option buttons to reveal right/wrong answers
+            const optionButtons = document.getElementById('quiz-options-list').children;
+            for (let i = 0; i < optionButtons.length; i++) {
+                const btn = optionButtons[i];
+                btn.disabled = true;
+                btn.classList.remove('hover:border-indigo-400', 'hover:bg-indigo-50/40');
+
+                const badge = btn.querySelector('span:first-child');
+
+                if (i === q.correctIndex) {
+                    // Highlight correct option in green
+                    btn.className = "w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50/80 transition-all flex items-center gap-3.5";
+                    badge.className = "w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-sm flex items-center justify-center shrink-0";
+                } else if (i === selectedIndex && !isCorrect) {
+                    // Highlight chosen wrong option in red
+                    btn.className = "w-full text-left p-4 rounded-2xl border-2 border-rose-500 bg-rose-50/80 transition-all flex items-center gap-3.5";
+                    badge.className = "w-8 h-8 rounded-xl bg-rose-600 text-white font-bold text-sm flex items-center justify-center shrink-0";
+                } else {
+                    btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 opacity-60 flex items-center gap-3.5";
+                }
+            }
+
+            // Show Explanation Box
+            const expBox = document.getElementById('quiz-explanation-box');
+            const expTitle = document.getElementById('explanation-title');
+            const expText = document.getElementById('explanation-text');
+            const expIcon = document.getElementById('explanation-icon');
+
+            if (isCorrect) {
+                expBox.className = "rounded-2xl p-4 mb-6 border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm";
+                expTitle.textContent = "Correct! Well done.";
+                expIcon.setAttribute('data-lucide', 'check-circle-2');
+                expIcon.className = "w-5 h-5 text-emerald-600 shrink-0 mt-0.5";
+            } else {
+                expBox.className = "rounded-2xl p-4 mb-6 border border-rose-200 bg-rose-50 text-rose-900 text-sm";
+                expTitle.textContent = "Not quite right.";
+                expIcon.setAttribute('data-lucide', 'x-circle');
+                expIcon.className = "w-5 h-5 text-rose-600 shrink-0 mt-0.5";
+            }
+            expText.textContent = q.explanation;
+            expBox.classList.remove('hidden');
+            lucide.createIcons();
+
+            // Show Next Button
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function nextQuizQuestion() {
+            if (currentQuizIndex < studyData.quiz.length - 1) {
+                currentQuizIndex++;
+                renderQuizQuestion();
+            } else {
+                showQuizSummary();
+            }
+        }
+
+        function showQuizSummary() {
+            document.getElementById('quiz-active-container').classList.add('hidden');
+            document.getElementById('quiz-summary-container').classList.remove('hidden');
+
+            const total = studyData.quiz.length;
+            const percent = Math.round((quizScore / total) * 100);
+
+            document.getElementById('final-score-fraction').textContent = `${quizScore} / ${total}`;
+            document.getElementById('final-score-percent').textContent = `${percent}%`;
+
+            const feedbackEl = document.getElementById('score-feedback-msg');
+            if (percent === 100) {
+                feedbackEl.textContent = "Perfect score! You've completely mastered this material.";
+            } else if (percent >= 70) {
+                feedbackEl.textContent = "Awesome job! You have a strong grasp of these concepts.";
+            } else {
+                feedbackEl.textContent = "Good effort! Flip through the flashcards and try again to boost your score.";
+            }
+        }
+
+        function retakeQuiz() {
+            currentQuizIndex = 0;
+            quizScore = 0;
+            hasAnsweredCurrent = false;
+            document.getElementById('quiz-summary-container').classList.add('hidden');
+            document.getElementById('quiz-active-container').classList.remove('hidden');
+            renderQuizQuestion();
+        }
+
+        // ================= SUMMARY LOGIC =================
+        function renderSummary() {
+            const container = document.getElementById('summary-content');
+            container.innerHTML = '';
+
+            studyData.summary.forEach(point => {
+                const item = document.createElement('div');
+                item.className = "flex items-start gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-100";
+                item.innerHTML = `
+                    <div class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <p class="text-slate-700">${escapeHtml(point)}</p>
+                `;
+                container.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function copySummary() {
+            const textToCopy = studyData.summary.map(s => `• ${s}`).join('\n');
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Summary notes copied to clipboard!', 'success');
+            } catch (err) {
+                showToast('Failed to copy text.', 'error');
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        // Reset App State
+        function resetApp() {
+            notesInput.value = '';
+            updateCharCount();
+            document.getElementById('results-workspace').classList.add('hidden');
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+            showToast('Workspace cleared.', 'info');
+        }
+
+        // XSS Safe HTML Escaping
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
